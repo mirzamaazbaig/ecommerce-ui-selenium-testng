@@ -1,0 +1,125 @@
+name: Selenium UI tests
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      ecom_ref:
+        description: 'Branch, tag or SHA of the application repository to test (default: its default branch)'
+        required: false
+        default: ''
+      suite:
+        description: 'TestNG suite file in src/test/resources'
+        required: false
+        default: 'testng.xml'
+
+concurrency:
+  group: selenium-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  ui-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ecom_db
+      SESSION_SECRET: ci-only-secret
+      NODE_ENV: test
+
+    steps:
+      - name: Check out the test framework
+        uses: actions/checkout@v4
+
+      - name: Check out the application under test
+        uses: actions/checkout@v4
+        with:
+          repository: mirzamaazbaig/Ecom
+          ref: ${{ inputs.ecom_ref }}
+          path: app
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            app/client/package-lock.json
+            app/server/package-lock.json
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+
+      - name: Install application dependencies
+        run: |
+          npm ci --prefix app/server
+          npm ci --prefix app/client
+
+      - name: Create and seed the database
+        working-directory: app/server
+        run: |
+          node db/setup.js
+          node scripts/migrate.js
+          node scripts/seedProducts.js
+
+      - name: Start the API and the client
+        run: |
+          (cd app/server && nohup node index.js > ../../api.log 2>&1 &)
+          (cd app/client && nohup npm run dev > ../../client.log 2>&1 &)
+          for i in $(seq 1 60); do
+            curl -sf http://localhost:5000/ > /dev/null && curl -sf http://localhost:5173/ > /dev/null && exit 0
+            sleep 1
+          done
+          echo "Application did not start"; cat api.log client.log; exit 1
+
+      - name: Run the Selenium tests
+        run: mvn -B test -Dsuite=${{ inputs.suite || 'testng.xml' }}
+
+      - name: Upload test reports
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: target/surefire-reports/
+          retention-days: 14
+
+      - name: Upload failure screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: target/screenshots/
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Upload application logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: application-logs
+          path: |
+            api.log
+            client.log
+          if-no-files-found: ignore
+          retention-days: 14
