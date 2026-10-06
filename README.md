@@ -1,4 +1,4 @@
-# E-Commerce UI Test Automation: Java, Selenium, TestNG
+# E-Commerce UI Tests: Java, Selenium, TestNG
 
 A Selenium WebDriver test framework in Java for a React, Express and PostgreSQL online shop ([the same application used for the Playwright suite](https://github.com/mirzamaazbaig/Ecom)). The point of this repository is the framework: how it is structured, how it stays stable under parallel execution, and how it runs in CI.
 

@@ -5,9 +5,9 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>qa.ecom</groupId>
-    <artifactId>ecommerce-selenium-tests</artifactId>
+    <artifactId>ecommerce-ui-selenium-testng</artifactId>
     <version>1.0.0</version>
-    <name>E-Commerce Selenium Test Framework</name>
+    <name>E-Commerce UI Tests: Selenium and TestNG</name>
 
     <properties>
         <maven.compiler.release>21</maven.compiler.release>
