@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       ecom_ref:
-        description: 'Branch, tag or SHA of the application repository to test (default: its default branch)'
+        description: 'Branch, tag or SHA of the application repository to test (default: qa-test-automation, the branch with the application's fixes)'
         required: false
         default: ''
       suite:
@@ -53,8 +53,8 @@ jobs:
       - name: Check out the application under test
         uses: actions/checkout@v4
         with:
-          repository: mirzamaazbaig/Ecom
-          ref: ${{ inputs.ecom_ref }}
+          repository: mirzamaazbaig/ecommerce-test-automation
+          ref: ${{ inputs.ecom_ref || 'qa-test-automation' }}
           path: app
 
       - uses: actions/setup-node@v4
