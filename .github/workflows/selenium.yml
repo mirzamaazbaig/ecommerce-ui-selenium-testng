@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       ecom_ref:
-        description: 'Branch, tag or SHA of the application repository to test (default: qa-test-automation, the branch with the application's fixes)'
+        description: 'Branch, tag or SHA of the application repository to test (default: qa-test-automation, the branch with the application fixes)'
         required: false
         default: ''
       suite:
