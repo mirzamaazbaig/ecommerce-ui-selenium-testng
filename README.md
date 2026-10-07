@@ -1,5 +1,7 @@
 # E-Commerce UI Tests: Java, Selenium, TestNG
 
+[![Selenium](https://github.com/mirzamaazbaig/ecommerce-ui-selenium-testng/actions/workflows/selenium.yml/badge.svg)](https://github.com/mirzamaazbaig/ecommerce-ui-selenium-testng/actions/workflows/selenium.yml)
+
 A Selenium WebDriver test framework in Java for a React, Express and PostgreSQL online shop ([the same application used for the Playwright suite](https://github.com/mirzamaazbaig/Ecom)). The point of this repository is the framework: how it is structured, how it stays stable under parallel execution, and how it runs in CI.
 
 - **29 UI tests**, run headless in about a minute with 3 classes in parallel; an 8-test smoke subset runs in under 20 seconds.
