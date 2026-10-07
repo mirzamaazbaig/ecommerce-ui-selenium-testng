@@ -31,6 +31,7 @@ public class WishlistPage extends BasePage {
     }
 
     public List<String> itemNames() {
+        waitForAnimations();
         return driver.findElements(CARD_TITLE).stream().map(e -> e.getText().trim()).toList();
     }
 

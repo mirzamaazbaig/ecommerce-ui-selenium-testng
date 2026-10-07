@@ -37,6 +37,7 @@ public class OrdersPage extends BasePage {
 
     /** The header text of each order, e.g. "Order #12 ... PENDING $45.00". */
     public List<String> orderSummaries() {
+        waitForAnimations();
         return driver.findElements(ORDER_TITLE).stream().map(e -> e.getText().replaceAll("\\s+", " ").trim()).toList();
     }
 

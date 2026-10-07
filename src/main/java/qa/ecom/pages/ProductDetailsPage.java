@@ -36,8 +36,12 @@ public class ProductDetailsPage extends BasePage {
 
     /** Adds to the cart and accepts the confirmation alert; returns the alert text. */
     public String addToCart() {
+        int before = nav().cartCount();
         click(ADD_TO_CART);
-        return acceptAlert();
+        String alert = acceptAlert();
+        // The cart is stored a moment after the alert; leaving the page before the badge changes loses the item
+        waitUntil("cart badge to rise above " + before, d -> nav().cartCount() > before);
+        return alert;
     }
 
     /** Adds to the wishlist and accepts the confirmation alert; returns the alert text. */

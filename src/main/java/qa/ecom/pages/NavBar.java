@@ -65,6 +65,7 @@ public class NavBar extends BasePage {
 
     /** The number on the cart badge, or 0 when the badge is not shown. */
     public int cartCount() {
+        waitForAnimations();
         return driver.findElements(CART_BADGE).stream()
                 .findFirst()
                 .map(e -> Integer.parseInt(e.getText().trim()))

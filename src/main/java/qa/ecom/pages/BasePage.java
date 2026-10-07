@@ -6,6 +6,7 @@ import org.openqa.selenium.ElementClickInterceptedException;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.StaleElementReferenceException;
 import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.TimeoutException;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
@@ -33,12 +34,27 @@ public abstract class BasePage {
         return new NavBar(driver);
     }
 
+    /**
+     * Waits until the page's finite animations have finished. Pages fade in over about 0.7 s, and while an element
+     * is still transparent Selenium reports its text as empty, so a read at that moment returns "" and the test
+     * fails intermittently. Endless animations (a loading spinner) are ignored.
+     */
+    protected void waitForAnimations() {
+        wait.withMessage("page animations to finish").until(d -> (Boolean) ((JavascriptExecutor) d).executeScript(
+                "return document.getAnimations().every(a => a.playState !== 'running' "
+                        + "|| a.effect.getComputedTiming().iterations === Infinity);"));
+    }
+
     protected WebElement visible(By locator) {
-        return wait.until(ExpectedConditions.visibilityOfElementLocated(locator));
+        WebElement element = wait.until(ExpectedConditions.visibilityOfElementLocated(locator));
+        waitForAnimations();
+        return element;
     }
 
     protected List<WebElement> allVisible(By locator) {
-        return wait.until(ExpectedConditions.visibilityOfAllElementsLocatedBy(locator));
+        List<WebElement> elements = wait.until(ExpectedConditions.visibilityOfAllElementsLocatedBy(locator));
+        waitForAnimations();
+        return elements;
     }
 
     /**
@@ -47,15 +63,37 @@ public abstract class BasePage {
      * into view) until the normal timeout instead of failing on the first attempt.
      */
     protected void click(By locator) {
-        wait.withMessage("to click " + locator)
-                .ignoring(ElementClickInterceptedException.class, StaleElementReferenceException.class)
-                .until(d -> {
-                    WebElement element = d.findElement(locator);
-                    ((JavascriptExecutor) d).executeScript("arguments[0].scrollIntoView({block: 'center'});", element);
-                    wait.until(ExpectedConditions.elementToBeClickable(element));
-                    element.click();
-                    return true;
-                });
+        try {
+            wait.withMessage("to click " + locator)
+                    .ignoring(ElementClickInterceptedException.class, StaleElementReferenceException.class)
+                    .until(d -> {
+                        waitForAnimations();
+                        WebElement element = d.findElement(locator);
+                        ((JavascriptExecutor) d).executeScript("arguments[0].scrollIntoView({block: 'center'});", element);
+                        wait.until(ExpectedConditions.elementToBeClickable(element));
+                        element.click();
+                        return true;
+                    });
+        } catch (TimeoutException e) {
+            // Say what is in the way, so a blocked click can be diagnosed from the log alone
+            throw new TimeoutException(e.getMessage() + "\nElement at the click point: " + elementAtCenterOf(locator), e);
+        }
+    }
+
+    /** Describes whatever the browser reports at the centre of the element (the element that would get the click). */
+    private String elementAtCenterOf(By locator) {
+        try {
+            Object described = ((JavascriptExecutor) driver).executeScript(
+                    "const r = arguments[0].getBoundingClientRect();"
+                            + "const x = r.left + r.width / 2, y = r.top + r.height / 2;"
+                            + "const top = document.elementFromPoint(x, y);"
+                            + "return 'viewport ' + innerWidth + 'x' + innerHeight + ', point (' + Math.round(x) + ',' + Math.round(y) + '), '"
+                            + " + (top ? top.outerHTML.slice(0, 200) : 'nothing (outside the viewport)');",
+                    driver.findElement(locator));
+            return String.valueOf(described);
+        } catch (RuntimeException ignored) {
+            return "(could not be determined)";
+        }
     }
 
     protected void type(By locator, String text) {

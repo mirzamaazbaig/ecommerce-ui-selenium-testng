@@ -35,6 +35,7 @@ public class CartPage extends BasePage {
     }
 
     public List<String> itemNames() {
+        waitForAnimations();
         return driver.findElements(LINE_ITEM).stream()
                 .map(li -> li.findElement(By.cssSelector("h6")).getText().trim())
                 .toList();
@@ -68,6 +69,7 @@ public class CartPage extends BasePage {
     }
 
     private WebElement line(String productName) {
+        waitForAnimations();
         return driver.findElements(LINE_ITEM).stream()
                 .filter(li -> li.findElement(By.cssSelector("h6")).getText().trim().equals(productName))
                 .findFirst()
