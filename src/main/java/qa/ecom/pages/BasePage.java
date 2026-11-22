@@ -40,9 +40,30 @@ public abstract class BasePage {
      * fails intermittently. Endless animations (a loading spinner) are ignored.
      */
     protected void waitForAnimations() {
-        wait.withMessage("page animations to finish").until(d -> (Boolean) ((JavascriptExecutor) d).executeScript(
-                "return document.getAnimations().every(a => a.playState !== 'running' "
-                        + "|| a.effect.getComputedTiming().iterations === Infinity);"));
+        try {
+            wait.withMessage("page animations to finish").until(d -> (Boolean) ((JavascriptExecutor) d).executeScript(
+                    "return document.getAnimations().every(a => a.playState !== 'running' "
+                            + "|| a.effect.getComputedTiming().iterations === Infinity);"));
+        } catch (TimeoutException e) {
+            // Name what is still running, so a stuck wait can be diagnosed from the log alone
+            throw new TimeoutException(e.getMessage() + "\nAnimations still running: " + runningAnimations(), e);
+        }
+    }
+
+    /** Describes the finite animations that are still running (name, target element, duration, progress). */
+    private String runningAnimations() {
+        try {
+            return String.valueOf(((JavascriptExecutor) driver).executeScript(
+                    "return document.getAnimations().filter(a => a.playState === 'running')"
+                            + ".map(a => (a.animationName || a.transitionProperty || a.constructor.name)"
+                            + " + ' on <' + (a.effect.target ? a.effect.target.tagName.toLowerCase() : '?') + ' class=\"'"
+                            + " + (a.effect.target ? a.effect.target.className : '') + '\"> duration='"
+                            + " + a.effect.getComputedTiming().duration + ' iterations='"
+                            + " + a.effect.getComputedTiming().iterations + ' progress='"
+                            + " + a.effect.getComputedTiming().progress).join('; ');"));
+        } catch (RuntimeException e) {
+            return "(could not be read: " + e.getMessage() + ")";
+        }
     }
 
     protected WebElement visible(By locator) {
