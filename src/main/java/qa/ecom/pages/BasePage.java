@@ -90,7 +90,7 @@ public abstract class BasePage {
                     .until(d -> {
                         waitForAnimations();
                         WebElement element = d.findElement(locator);
-                        ((JavascriptExecutor) d).executeScript("arguments[0].scrollIntoView({block: 'center'});", element);
+                        ((JavascriptExecutor) d).executeScript("arguments[0].scrollIntoView({block: 'center', behavior: 'instant'});", element);
                         wait.until(ExpectedConditions.elementToBeClickable(element));
                         element.click();
                         return true;
